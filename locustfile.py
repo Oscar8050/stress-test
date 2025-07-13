@@ -48,14 +48,14 @@ class User(HttpUser):
         )
 
         # Get CSRF token
-        login_page = self.client.get("/login")
+        login_page = self.client.get("/login", verify=False)
         csrf = re.search(
             r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
         )
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout")
+            self.client.get("/logout", verify=False)
         elif csrf:
             csrf_token = csrf.group(1)
 
@@ -67,7 +67,7 @@ class User(HttpUser):
                 ),
                 "_csrf_token": csrf_token,
             }
-            login_response = self.client.post("/login", data=payload)
+            login_response = self.client.post("/login", data=payload, verify=False)
             if login_response.status_code == 200:
                 pass
             else:
@@ -77,15 +77,15 @@ class User(HttpUser):
 
     def on_stop(self):
         # Get CSRF token
-        login_page = self.client.get("/login")
+        login_page = self.client.get("/login", verify=False)
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout")
+            self.client.get("/logout", verify=False)
 
     @task(60)
     def view_scoreboard(self):
-        scoreboard = self.client.get("/team/scoreboard")
+        scoreboard = self.client.get("/team/scoreboard", verify=False)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
 
         if scoreboard.status_code == 200 and title:
@@ -103,6 +103,7 @@ class User(HttpUser):
             auth=self.user_auth,
             data=self.data,
             headers=headers,
+            verify=False,
         )
 
         # Check the response
@@ -114,7 +115,7 @@ class User(HttpUser):
     @task(5)
     def others(self):
         page = random.choice(pages)
-        info = self.client.get(page)
+        info = self.client.get(page, verify=False)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
 
         if info.status_code == 200 and title:
