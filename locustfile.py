@@ -7,6 +7,13 @@ import json
 from requests.auth import HTTPBasicAuth
 
 headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+headers_json = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
     "Content-Type": "application/json",
 }
 
@@ -48,14 +55,14 @@ class User(HttpUser):
         )
 
         # Get CSRF token
-        login_page = self.client.get("/login", verify=False)
+        login_page = self.client.get("/login", headers=headers, verify=False)
         csrf = re.search(
             r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
         )
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout", verify=False)
+            self.client.get("/logout", headers=headers, verify=False)
         elif csrf:
             csrf_token = csrf.group(1)
 
@@ -67,7 +74,7 @@ class User(HttpUser):
                 ),
                 "_csrf_token": csrf_token,
             }
-            login_response = self.client.post("/login", data=payload, verify=False)
+            login_response = self.client.post("/login", headers=headers, data=payload, verify=False)
             if login_response.status_code == 200:
                 pass
             else:
@@ -77,15 +84,15 @@ class User(HttpUser):
 
     def on_stop(self):
         # Get CSRF token
-        login_page = self.client.get("/login", verify=False)
+        login_page = self.client.get("/login", headers=headers, verify=False)
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout", verify=False)
+            self.client.get("/logout", headers=headers, verify=False)
 
     @task(60)
     def view_scoreboard(self):
-        scoreboard = self.client.get("/team/scoreboard", verify=False)
+        scoreboard = self.client.get("/team/scoreboard", headers=headers, verify=False)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
 
         if scoreboard.status_code == 200 and title:
@@ -102,7 +109,7 @@ class User(HttpUser):
             "/api/v4/contests/1/submissions",
             auth=self.user_auth,
             data=self.data,
-            headers=headers,
+            headers=headers_json,
             verify=False,
         )
 
@@ -115,7 +122,7 @@ class User(HttpUser):
     @task(5)
     def others(self):
         page = random.choice(pages)
-        info = self.client.get(page, verify=False)
+        info = self.client.get(page, headers=headers, verify=False)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
 
         if info.status_code == 200 and title:
