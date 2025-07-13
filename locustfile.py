@@ -49,7 +49,7 @@ class User(HttpUser):
             {
                 "language_id": "cpp",
                 "problem_id": "1",
-                "team_id": self.teamId + 2,
+                "team_id": self.teamId + 3,
                 "files": [{"data": file, "mime": "application/zip"}],
             }
         )
