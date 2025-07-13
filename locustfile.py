@@ -23,9 +23,9 @@ userIds = list(range(1, 4))
 
 pages = [
     "/team/problems",
-    "/team/problems/1/text",
-    "/team/problems/2/text",
-    "/team/problems/3/text",
+    "/team/problems/1/statement",
+    "/team/problems/2/statement",
+    "/team/problems/3/statement",
 ]
 
 with open("test.zip", "rb") as pyfile:
