@@ -24,8 +24,8 @@ userIds = list(range(1, 4))
 pages = [
     "/team/problems",
     "/team/problems/1/statement",
-    "/team/problems/2/statement",
-    "/team/problems/3/statement",
+    # "/team/problems/2/statement",
+    # "/team/problems/3/statement",
 ]
 
 with open("test.zip", "rb") as pyfile:
@@ -49,7 +49,7 @@ class User(HttpUser):
             {
                 "language_id": "cpp",
                 "problem_id": "1",
-                "team_id": self.teamId + 3,
+                "team_id": self.teamId + (1 if self.teamId < 208 else 2),
                 "files": [{"data": file, "mime": "application/zip"}],
             }
         )
