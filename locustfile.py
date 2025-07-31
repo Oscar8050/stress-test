@@ -2,7 +2,7 @@ from __future__ import annotations
 import base64
 import random
 import re
-from locust import HttpUser, task, constant
+from locust import FastHttpUser, task, constant
 import json
 from requests.auth import HTTPBasicAuth
 
@@ -23,7 +23,7 @@ userIds = list(range(1, 4))
 
 pages = [
     "/team/problems",
-    "/team/problems/1/statement",
+    "/team/problems/4/statement",
     # "/team/problems/2/statement",
     # "/team/problems/3/statement",
 ]
@@ -33,7 +33,7 @@ with open("test.zip", "rb") as pyfile:
 file = base64.b64encode(file_content).decode("utf-8")
 
 
-class User(HttpUser):
+class User(FastHttpUser):
     wait_time = constant(3)
 
     def on_start(self):
@@ -48,8 +48,8 @@ class User(HttpUser):
         self.data = json.dumps(
             {
                 "language_id": "cpp",
-                "problem_id": "1",
-                "team_id": self.teamId + (1 if self.teamId < 208 else 2),
+                "problem_id": "4",
+                "team_id": self.teamId + 6,
                 "files": [{"data": file, "mime": "application/zip"}],
             }
         )
@@ -57,9 +57,9 @@ class User(HttpUser):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers, verify=False)
         csrf = re.search(
-            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
+            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.content.decode("utf-8")
         )
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.content.decode("utf-8"))
 
         if login:
             self.client.get("/logout", headers=headers, verify=False)
@@ -85,7 +85,7 @@ class User(HttpUser):
     def on_stop(self):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers, verify=False)
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.content.decode("utf-8"))
 
         if login:
             self.client.get("/logout", headers=headers, verify=False)
@@ -93,7 +93,7 @@ class User(HttpUser):
     @task(60)
     def view_scoreboard(self):
         scoreboard = self.client.get("/team/scoreboard", headers=headers, verify=False)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.content.decode("utf-8"))
 
         if scoreboard.status_code == 200 and title:
             pass
@@ -123,7 +123,7 @@ class User(HttpUser):
     def others(self):
         page = random.choice(pages)
         info = self.client.get(page, headers=headers, verify=False)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", info.content.decode("utf-8"))
 
         if info.status_code == 200 and title:
             pass
