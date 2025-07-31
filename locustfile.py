@@ -2,7 +2,7 @@ from __future__ import annotations
 import base64
 import random
 import re
-from locust import FastHttpUser, task, constant
+from locust import HttpUser, task, constant
 import json
 from requests.auth import HTTPBasicAuth
 
@@ -33,7 +33,7 @@ with open("test.zip", "rb") as pyfile:
 file = base64.b64encode(file_content).decode("utf-8")
 
 
-class User(FastHttpUser):
+class User(HttpUser):
     wait_time = constant(3)
 
     def on_start(self):
@@ -57,9 +57,9 @@ class User(FastHttpUser):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers, verify=False)
         csrf = re.search(
-            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.content.decode("utf-8")
+            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
         )
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.content.decode("utf-8"))
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
             self.client.get("/logout", headers=headers, verify=False)
@@ -85,7 +85,7 @@ class User(FastHttpUser):
     def on_stop(self):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers, verify=False)
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.content.decode("utf-8"))
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
             self.client.get("/logout", headers=headers, verify=False)
@@ -93,7 +93,7 @@ class User(FastHttpUser):
     @task(60)
     def view_scoreboard(self):
         scoreboard = self.client.get("/team/scoreboard", headers=headers, verify=False)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.content.decode("utf-8"))
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
 
         if scoreboard.status_code == 200 and title:
             pass
@@ -123,7 +123,7 @@ class User(FastHttpUser):
     def others(self):
         page = random.choice(pages)
         info = self.client.get(page, headers=headers, verify=False)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", info.content.decode("utf-8"))
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
 
         if info.status_code == 200 and title:
             pass
