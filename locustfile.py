@@ -4,7 +4,6 @@ import random
 import re
 from locust import FastHttpUser, task, constant
 import json
-from requests.auth import HTTPBasicAuth
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0 Safari/537.36",
@@ -44,7 +43,12 @@ class User(FastHttpUser):
             "username": f"test_team{self.teamId}_user{self.userId}",
             "password": str(self.userId) * 10,
         }
-        self.user_auth = HTTPBasicAuth(self.user["username"], self.user["password"])
+        # Create Basic Auth header manually for FastHttpUser
+        auth_string = f"{self.user['username']}:{self.user['password']}"
+        auth_bytes = auth_string.encode('ascii')
+        auth_b64 = base64.b64encode(auth_bytes).decode('ascii')
+        self.auth_header = f"Basic {auth_b64}"
+        
         self.data = json.dumps(
             {
                 "language_id": "cpp",
@@ -56,10 +60,11 @@ class User(FastHttpUser):
 
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers)
+        login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
         csrf = re.search(
-            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
+            r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_text
         )
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_text)
 
         if login:
             self.client.get("/logout", headers=headers)
@@ -85,7 +90,8 @@ class User(FastHttpUser):
     def on_stop(self):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers)
-        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
+        login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
+        login = re.search(r"<title>(.*?) - DOMjudge</title>", login_text)
 
         if login:
             self.client.get("/logout", headers=headers)
@@ -93,7 +99,8 @@ class User(FastHttpUser):
     @task(60)
     def view_scoreboard(self):
         scoreboard = self.client.get("/team/scoreboard", headers=headers)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
+        scoreboard_text = scoreboard.content.decode('utf-8') if hasattr(scoreboard, 'content') else str(scoreboard.text)
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard_text)
 
         if scoreboard.status_code == 200 and title:
             pass
@@ -105,24 +112,29 @@ class User(FastHttpUser):
 
     @task(3)
     def submit(self):
+        # Create headers with Basic Auth
+        submit_headers = headers_json.copy()
+        submit_headers["Authorization"] = self.auth_header
+        
         submission = self.client.post(
             "/api/v4/contests/1/submissions",
-            auth=self.user_auth,
             data=self.data,
-            headers=headers_json,
+            headers=submit_headers,
         )
 
         # Check the response
         if submission.status_code in [200, 201]:
             pass
         else:
-            raise Exception("Failed:", submission.status_code, submission.text)
+            response_text = submission.content.decode('utf-8') if hasattr(submission, 'content') else str(submission.text)
+            raise Exception("Failed:", submission.status_code, response_text)
 
     @task(5)
     def others(self):
         page = random.choice(pages)
         info = self.client.get(page, headers=headers)
-        title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
+        info_text = info.content.decode('utf-8') if hasattr(info, 'content') else str(info.text)
+        title = re.search(r"<title>(.*?) - DOMjudge</title>", info_text)
 
         if info.status_code == 200 and title:
             pass
