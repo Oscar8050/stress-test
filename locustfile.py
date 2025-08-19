@@ -2,7 +2,7 @@ from __future__ import annotations
 import base64
 import random
 import re
-from locust import HttpUser, task, constant
+from locust import FastHttpUser, task, constant
 import json
 from requests.auth import HTTPBasicAuth
 
@@ -33,7 +33,7 @@ with open("test.zip", "rb") as pyfile:
 file = base64.b64encode(file_content).decode("utf-8")
 
 
-class User(HttpUser):
+class User(FastHttpUser):
     wait_time = constant(3)
 
     def on_start(self):
@@ -55,14 +55,14 @@ class User(HttpUser):
         )
 
         # Get CSRF token
-        login_page = self.client.get("/login", headers=headers, verify=False)
+        login_page = self.client.get("/login", headers=headers)
         csrf = re.search(
             r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_page.text
         )
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout", headers=headers, verify=False)
+            self.client.get("/logout", headers=headers)
         elif csrf:
             csrf_token = csrf.group(1)
 
@@ -74,7 +74,7 @@ class User(HttpUser):
                 ),
                 "_csrf_token": csrf_token,
             }
-            login_response = self.client.post("/login", headers=headers, data=payload, verify=False)
+            login_response = self.client.post("/login", headers=headers, data=payload)
             if login_response.status_code == 200:
                 pass
             else:
@@ -84,15 +84,15 @@ class User(HttpUser):
 
     def on_stop(self):
         # Get CSRF token
-        login_page = self.client.get("/login", headers=headers, verify=False)
+        login_page = self.client.get("/login", headers=headers)
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_page.text)
 
         if login:
-            self.client.get("/logout", headers=headers, verify=False)
+            self.client.get("/logout", headers=headers)
 
     @task(60)
     def view_scoreboard(self):
-        scoreboard = self.client.get("/team/scoreboard", headers=headers, verify=False)
+        scoreboard = self.client.get("/team/scoreboard", headers=headers)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard.text)
 
         if scoreboard.status_code == 200 and title:
@@ -110,7 +110,6 @@ class User(HttpUser):
             auth=self.user_auth,
             data=self.data,
             headers=headers_json,
-            verify=False,
         )
 
         # Check the response
@@ -122,7 +121,7 @@ class User(HttpUser):
     @task(5)
     def others(self):
         page = random.choice(pages)
-        info = self.client.get(page, headers=headers, verify=False)
+        info = self.client.get(page, headers=headers)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", info.text)
 
         if info.status_code == 200 and title:
