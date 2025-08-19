@@ -22,7 +22,7 @@ userIds = list(range(1, 4))
 
 pages = [
     "/team/problems",
-    "/team/problems/4/statement",
+    "/team/problems/7/statement",
     # "/team/problems/2/statement",
     # "/team/problems/3/statement",
 ]
@@ -52,7 +52,7 @@ class User(FastHttpUser):
         self.data = json.dumps(
             {
                 "language_id": "cpp",
-                "problem_id": "4",
+                "problem_id": "7",
                 "team_id": self.teamId + 6,
                 "files": [{"data": file, "mime": "application/zip"}],
             }
