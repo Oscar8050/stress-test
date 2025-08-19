@@ -60,7 +60,10 @@ class User(FastHttpUser):
 
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers)
-        login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
+        try:
+            login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
+        except UnicodeDecodeError:
+            login_text = login_page.content.decode('utf-8', errors='ignore') if hasattr(login_page, 'content') else str(login_page.text)
         csrf = re.search(
             r'<input type="hidden" name="_csrf_token" value="([^"]*)">', login_text
         )
@@ -90,7 +93,10 @@ class User(FastHttpUser):
     def on_stop(self):
         # Get CSRF token
         login_page = self.client.get("/login", headers=headers)
-        login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
+        try:
+            login_text = login_page.content.decode('utf-8') if hasattr(login_page, 'content') else str(login_page.text)
+        except UnicodeDecodeError:
+            login_text = login_page.content.decode('utf-8', errors='ignore') if hasattr(login_page, 'content') else str(login_page.text)
         login = re.search(r"<title>(.*?) - DOMjudge</title>", login_text)
 
         if login:
@@ -99,7 +105,10 @@ class User(FastHttpUser):
     @task(60)
     def view_scoreboard(self):
         scoreboard = self.client.get("/team/scoreboard", headers=headers)
-        scoreboard_text = scoreboard.content.decode('utf-8') if hasattr(scoreboard, 'content') else str(scoreboard.text)
+        try:
+            scoreboard_text = scoreboard.content.decode('utf-8') if hasattr(scoreboard, 'content') else str(scoreboard.text)
+        except UnicodeDecodeError:
+            scoreboard_text = scoreboard.content.decode('utf-8', errors='ignore') if hasattr(scoreboard, 'content') else str(scoreboard.text)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", scoreboard_text)
 
         if scoreboard.status_code == 200 and title:
@@ -126,14 +135,20 @@ class User(FastHttpUser):
         if submission.status_code in [200, 201]:
             pass
         else:
-            response_text = submission.content.decode('utf-8') if hasattr(submission, 'content') else str(submission.text)
+            try:
+                response_text = submission.content.decode('utf-8') if hasattr(submission, 'content') else str(submission.text)
+            except UnicodeDecodeError:
+                response_text = submission.content.decode('utf-8', errors='ignore') if hasattr(submission, 'content') else str(submission.text)
             raise Exception("Failed:", submission.status_code, response_text)
 
     @task(5)
     def others(self):
         page = random.choice(pages)
         info = self.client.get(page, headers=headers)
-        info_text = info.content.decode('utf-8') if hasattr(info, 'content') else str(info.text)
+        try:
+            info_text = info.content.decode('utf-8') if hasattr(info, 'content') else str(info.text)
+        except UnicodeDecodeError:
+            info_text = info.content.decode('utf-8', errors='ignore') if hasattr(info, 'content') else str(info.text)
         title = re.search(r"<title>(.*?) - DOMjudge</title>", info_text)
 
         if info.status_code == 200 and title:
